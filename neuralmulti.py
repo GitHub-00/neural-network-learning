@@ -18,10 +18,9 @@ class CifarData:
         all_labels = []
         for filename in filenames:
             data, labels = load_data(filename)
-            for item, label in zip(data , labels):
-                if label in [0,1]:
-                    all_data.append(item)
-                    all_labels.append(label)
+
+            all_data.append(data)
+            all_labels.append(labels)
 
         self._data = np.vstack(all_data)
         #归一化
@@ -71,28 +70,45 @@ test_data = CifarData(test_filenames, False)
 x = tf.placeholder(tf.float32,[None, 3072])
 y = tf.placeholder(tf.int64, [None])
 
-#(3072,1)
-w = tf.get_variable('w', [x.get_shape()[-1],1],
+#(3072,10)
+w = tf.get_variable('w', [x.get_shape()[-1],10],
                           initializer=tf.random_normal_initializer(0,1))
 
-#[1,]
-b = tf.get_variable('b' ,[1],
+#[10,]
+b = tf.get_variable('b' ,[10],
                     initializer=tf.constant_initializer(0.0))
 
-#[None, 3072]*(3072,1)=[None,1]
+#[None, 3072]*(3072,1)=[None,10]
 y_ = tf.matmul(x,w)+b
 
-p_y_l = tf.nn.sigmoid(y_)
+"""
+p_y_l = tf.nn.softmax(y_)
+
+#[0,0,0,0,0,0,0,0,0,0,1] one hot 结果示例
+y_one_hot= tf.one_hot(y, 10 , dtype=tf.float32)
+
+loss = tf.reduce_mean(tf.square(y_one_hot - p_y_l))
+"""
+
+#y_ -> sofmax
+#y -> not hot
+#loss = ylogy_
+#交叉熵损失函数
+loss = tf.losses.sparse_softmax_cross_entropy(labels=y , logits=y_)
+
+"""
+#二分类sigmoid 函数
+#p_y_l = tf.nn.sigmoid(y_)
 
 y_reshaped = tf.reshape(y,(-1,1))
 
 y_reshaped_float = tf.cast(y_reshaped, tf.float32)
 
 loss = tf.reduce_mean(tf.square(y_reshaped_float-p_y_l))
+"""
+predict = tf.argmax(y_, 1)
 
-predict = p_y_l>0.5
-
-correct_prediction = tf.equal(tf.cast(predict, tf.int64), y_reshaped)
+correct_prediction = tf.equal(predict, y)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float64))
 
 #梯度下降的方法
