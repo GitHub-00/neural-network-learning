@@ -1,3 +1,7 @@
+"""
+multi neural hidden layers
+"""
+
 import pickle
 import numpy as np
 import os
@@ -61,52 +65,60 @@ test_filenames = [os.path.join(CIRFAR_DIR, 'test_batch')]
 train_data = CifarData(train_filenames, True)
 test_data = CifarData(test_filenames, False)
 
-#batch_data, batch_labels = train_data.next_batch(10)
-
-#print(batch_data)
-#print(batch_labels)
-
-
 
 x = tf.placeholder(tf.float32,[None, 3072])
 y = tf.placeholder(tf.int64, [None])
 
-#(3072,10)
-w = tf.get_variable('w', [x.get_shape()[-1],10],
-                          initializer=tf.random_normal_initializer(0,1))
+x_image = tf.reshape(x, [-1, 3, 32, 32] )
+x_image = tf.transpose(x_image, perm=[0, 2, 3, 1] )
 
-#[10,]
-b = tf.get_variable('b' ,[10],
-                    initializer=tf.constant_initializer(0.0))
+#32*32*3
+conv1 = tf.layers.conv2d(x_image,
+                         32, #output channel number
+                         kernel_size=(3,3), #kernel size
+                         padding='same',
+                         activation=tf.nn.relu,
+                         name='conv1')
+#16*16
+pooling1 = tf.layers.max_pooling2d(conv1,
+                                   (2,2),
+                                   (2,2),
+                                   name='pool1')
+conv2 = tf.layers.conv2d(pooling1,
+                         32, #output channel number
+                         kernel_size=(3,3), #kernel size
+                         padding='same',
+                         activation=tf.nn.relu,
+                         name='conv2')
+#8*8
+pooling2 = tf.layers.max_pooling2d(conv2,
+                                   (2,2),
+                                   (2,2),
+                                   name='pool2')
 
-#[None, 3072]*(3072,1)=[None,10]
-y_ = tf.matmul(x,w)+b
+conv3 = tf.layers.conv2d(pooling2,
+                         32, #output channel number
+                         kernel_size=(3,3), #kernel size
+                         padding='same',
+                         activation=tf.nn.relu,
+                         name='conv3')
+#4*4*32
+pooling3 = tf.layers.max_pooling2d(conv3,
+                                   (2,2),
+                                   (2,2),
+                                   name='pool3')
+#
+flatten = tf.layers.flatten(pooling3)
 
-"""
-p_y_l = tf.nn.softmax(y_)
-
-#[0,0,0,0,0,0,0,0,0,0,1] one hot 结果示例
-y_one_hot= tf.one_hot(y, 10 , dtype=tf.float32)
-
-loss = tf.reduce_mean(tf.square(y_one_hot - p_y_l))
-"""
+y_ = tf.layers.dense(flatten, 10)
 
 #y_ -> sofmax
 #y -> not hot
-#loss = ylogy_
+#loss = ylogy_展平
 #交叉熵损失函数
 loss = tf.losses.sparse_softmax_cross_entropy(labels=y , logits=y_)
 
-"""
-#二分类sigmoid 函数
-#p_y_l = tf.nn.sigmoid(y_)
 
-y_reshaped = tf.reshape(y,(-1,1))
-
-y_reshaped_float = tf.cast(y_reshaped, tf.float32)
-
-loss = tf.reduce_mean(tf.square(y_reshaped_float-p_y_l))
-"""
 predict = tf.argmax(y_, 1)
 
 correct_prediction = tf.equal(predict, y)

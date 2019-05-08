@@ -13,7 +13,7 @@ CIRFA_DIR=os.path.abspath(os.path.join(os.getcwd(), "../cifar-10-batches-py"))
 
 #print (os.listdir(CIRFA_DIR))
 with open(os.path.join(CIRFA_DIR,'data_batch_1'),'rb') as f:
-    #data=pickle.load(f)
+    #data=pickle.load(f.read())
     data=pickle.load(f,encoding='bytes')
     print(type(data))
     print(data.keys())
